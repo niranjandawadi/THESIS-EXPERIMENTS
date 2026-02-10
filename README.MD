@@ -1,3 +1,6 @@
+# Project Structure
+
+```
 poverty-net-abm/                     ← your whole project folder (repo)
 │
 ├─ README.md                         ← what the project is + how to run
@@ -49,10 +52,11 @@ poverty-net-abm/                     ← your whole project folder (repo)
 └─ scripts/                          ← easy command-line entry points
    ├─ run_experiment.py              ← runs a single config
    └─ run_sweep.py                   ← runs a sweep
+```
 
+# Pipeline
 
-** Pipeline **
-
+```
 configs/*.yaml
      │
      ▼
@@ -73,3 +77,4 @@ experiments/runner.py
      │
      ▼
 results/<experiment_name>/...
+```
