@@ -1,0 +1,37 @@
+experiment:
+  name: "topology_sweep"
+  description: "Vary network topology while holding agent rules and initial resources fixed."
+  output_dir: "results"
+
+sim:
+  n_agents: 200
+  n_steps: 500
+  n_runs: 50
+  seed: 123
+  record_every: 1
+
+economy:
+  init_wealth:
+    method: "equal"     # "equal" or "lognormal"
+    total: 200.0        # total wealth in the system (fixed across all runs)
+  survival_threshold: 0.8
+
+exchange:
+  step:
+    # A simple, topology-sensitive rule:
+    # Each step: pick a random edge (u,v), move a small amount from one endpoint to the other.
+    # This makes mixing depend on network connectivity/bridges.
+    transfer_amount: 0.05
+    direction: "random" # "random" or "poor_to_rich" or "rich_to_poor"
+  floor: 0.0            # wealth cannot go below this
+
+topology_sweep:
+  cases:
+    - graph_type: "er"
+      params: { p: 0.04 }
+    - graph_type: "ws"
+      params: { k: 8, p_rewire: 0.10 }
+    - graph_type: "ba"
+      params: { m: 3 }
+    - graph_type: "sbm"
+      params: { sizes: [50,50,50,50], p_in: 0.10, p_out: 0.005 }
