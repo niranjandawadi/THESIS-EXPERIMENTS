@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, Any
 import numpy as np
 import networkx as nx
+from poverty_abm.model.interventions import apply_cash_transfer
 
 @dataclass
 class SimState:
@@ -34,20 +35,36 @@ def step_exchange(G: nx.Graph, state: SimState, cfg: Dict[str, Any], rng: np.ran
     if not edges:
         return
 
-    u, v = edges[rng.integers(0, len(edges))]
+    # survival threshold needed for "poor_to_poor"
+    threshold = float(cfg["economy"]["survival_threshold"])
 
-    # pick direction
-    if direction == "random":
-        if rng.random() < 0.5:
-            src, dst = u, v
+    # Choose an interaction edge
+    if direction == "poor_to_poor":
+        # Prefer edges where BOTH endpoints are below survival threshold
+        poor_edges = [(u, v) for (u, v) in edges
+                      if (state.wealth[u] < threshold and state.wealth[v] < threshold)]
+        if poor_edges:
+            u, v = poor_edges[rng.integers(0, len(poor_edges))]
         else:
-            src, dst = v, u
-    elif direction == "poor_to_rich":
-        src, dst = (u, v) if state.wealth[u] < state.wealth[v] else (v, u)
-    elif direction == "rich_to_poor":
-        src, dst = (u, v) if state.wealth[u] > state.wealth[v] else (v, u)
+            # fallback: if there are no poor-poor edges, revert to random edge
+            u, v = edges[rng.integers(0, len(edges))]
+
+        # Within that poor-poor edge, direction can be random
+        src, dst = (u, v) if rng.random() < 0.5 else (v, u)
+
     else:
-        raise ValueError(f"Unknown direction: {direction}")
+        # default edge choice (random edge)
+        u, v = edges[rng.integers(0, len(edges))]
+
+        # choose direction
+        if direction == "random":
+            src, dst = (u, v) if rng.random() < 0.5 else (v, u)
+        elif direction == "poor_to_rich":
+            src, dst = (u, v) if state.wealth[u] < state.wealth[v] else (v, u)
+        elif direction == "rich_to_poor":
+            src, dst = (u, v) if state.wealth[u] > state.wealth[v] else (v, u)
+        else:
+            raise ValueError(f"Unknown direction: {direction}")
 
     # apply transfer with floor constraint
     amt = min(transfer, max(0.0, state.wealth[src] - floor))
@@ -60,6 +77,13 @@ def run_simulation(G: nx.Graph, cfg: Dict[str, Any], seed: int) -> Dict[str, Any
 
     wealth = init_wealth(n, cfg, rng)
     state = SimState(wealth=wealth)
+    
+    # Optional: aid at t0 (targets provided by runner)
+    targets = cfg.get("_targets", [])
+    aid_cfg = cfg.get("aid", None)
+    if aid_cfg and aid_cfg.get("mechanism") == "cash_transfer":
+        if aid_cfg.get("when", "t0") == "t0":
+            apply_cash_transfer(state.wealth, targets, float(aid_cfg["budget_total"]))
 
     n_steps = int(cfg["sim"]["n_steps"])
     record_every = int(cfg["sim"].get("record_every", 1))
@@ -67,6 +91,11 @@ def run_simulation(G: nx.Graph, cfg: Dict[str, Any], seed: int) -> Dict[str, Any
     # store time series metrics later (computed in measures)
     wealth_history = []
     for t in range(n_steps):
+        if aid_cfg and aid_cfg.get("mechanism") == "cash_transfer":
+            if aid_cfg.get("when") == "every_T":
+                T = int(aid_cfg.get("every_T", 50))
+                if T > 0 and (t % T == 0) and t > 0:
+                    apply_cash_transfer(state.wealth, targets, float(aid_cfg["budget_total"]))
         step_exchange(G, state, cfg, rng)
         if (t % record_every) == 0:
             wealth_history.append(state.wealth.copy())

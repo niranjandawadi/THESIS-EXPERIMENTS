@@ -1,0 +1,45 @@
+experiment:
+  name: "seeding_aid"
+  description: "Target k agents for aid and compare targeting strategies under fixed budget."
+  output_dir: "results"
+
+sim:
+  n_agents: 200
+  n_steps: 500
+  n_runs: 50
+  seed: 123
+  record_every: 1
+
+economy:
+  init_wealth:
+    method: "equal"
+    total: 200.0
+  survival_threshold: 0.8
+
+exchange:
+  step:
+    transfer_amount: 0.05
+    direction: "random"
+  floor: 0.0
+
+network:
+  graph_type: "sbm"
+  params: { sizes: [50,50,50,50], p_in: 0.10, p_out: 0.005 }
+
+aid:
+  mechanism: "cash_transfer"
+  budget_total: 20.0      # B
+  k: 10                   # number of agents helped
+  when: "t0"              # "t0" or "every_T"
+  every_T: 50             # used only if when = every_T
+
+seeding_experiment:
+  strategies:
+    - "random"
+    - "poorest_first"
+    - "degree"
+    - "betweenness"
+    - "pagerank"
+    - "bridge_betweenness"
+    - "community_spread"
+    - "community_clustered"

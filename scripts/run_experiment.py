@@ -2,7 +2,7 @@ from __future__ import annotations
 import argparse
 import yaml
 
-from poverty_abm.experiments.runner import run_topology_sweep
+from poverty_abm.experiments.runner import run_topology_sweep, run_seeding_experiment
 
 def main():
     parser = argparse.ArgumentParser()
@@ -15,8 +15,10 @@ def main():
     # For now: only topology sweep
     if cfg.get("experiment", {}).get("name") == "topology_sweep":
         run_topology_sweep(cfg)
+    elif cfg.get("experiment", {}).get("name") == "seeding_aid":
+        run_seeding_experiment(cfg)
     else:
-        raise ValueError("Unknown or unsupported experiment name in config.")
+        raise ValueError("Unknown experiment name.")
 
 if __name__ == "__main__":
     main()
