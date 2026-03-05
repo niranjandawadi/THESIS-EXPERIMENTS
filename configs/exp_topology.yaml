@@ -5,15 +5,17 @@ experiment:
 
 sim:
   n_agents: 200
-  n_steps: 500
+  n_steps: 5000
   n_runs: 50
   seed: 123
-  record_every: 1
+  record_every: 10
 
 economy:
   init_wealth:
-    method: "equal"     # "equal" or "lognormal"
-    total: 200.0        # total wealth in the system (fixed across all runs)
+    method: "lognormal"  # "equal" or "lognormal"
+    total: 200.0         # total wealth in the system (fixed across all runs)
+    mu: 0.0
+    sigma: 1.0
   survival_threshold: 0.8
 
 exchange:
@@ -21,7 +23,7 @@ exchange:
     # A simple, topology-sensitive rule:
     # Each step: pick a random edge (u,v), move a small amount from one endpoint to the other.
     # This makes mixing depend on network connectivity/bridges.
-    transfer_amount: 0.05
+    transfer_amount: 0.10
     direction: "random" # "random" or "poor_to_rich" or "rich_to_poor"
   floor: 0.0            # wealth cannot go below this
 

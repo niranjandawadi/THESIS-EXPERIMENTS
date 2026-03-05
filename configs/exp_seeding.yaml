@@ -5,20 +5,22 @@ experiment:
 
 sim:
   n_agents: 200
-  n_steps: 500
+  n_steps: 5000
   n_runs: 50
   seed: 123
-  record_every: 1
+  record_every: 10
 
 economy:
   init_wealth:
-    method: "equal"
+    method: "lognormal"
     total: 200.0
+    mu: 0.0
+    sigma: 1.0
   survival_threshold: 0.8
 
 exchange:
   step:
-    transfer_amount: 0.05
+    transfer_amount: 0.10
     direction: "random"
   floor: 0.0
 
