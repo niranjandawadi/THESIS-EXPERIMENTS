@@ -77,7 +77,10 @@ def run_simulation(G: nx.Graph, cfg: Dict[str, Any], seed: int) -> Dict[str, Any
 
     wealth = init_wealth(n, cfg, rng)
     state = SimState(wealth=wealth)
-    
+
+    # Record pre-intervention wealth for spillover analysis
+    wealth_pre_aid = state.wealth.copy()
+
     # Optional: aid at t0 (targets provided by runner)
     targets = cfg.get("_targets", [])
     aid_cfg = cfg.get("aid", None)
@@ -87,6 +90,7 @@ def run_simulation(G: nx.Graph, cfg: Dict[str, Any], seed: int) -> Dict[str, Any
 
     n_steps = int(cfg["sim"]["n_steps"])
     record_every = int(cfg["sim"].get("record_every", 1))
+    n_exchanges = int(cfg["sim"].get("n_exchanges_per_step", 1))
 
     # store time series metrics later (computed in measures)
     wealth_history = []
@@ -96,13 +100,15 @@ def run_simulation(G: nx.Graph, cfg: Dict[str, Any], seed: int) -> Dict[str, Any
                 T = int(aid_cfg.get("every_T", 50))
                 if T > 0 and (t % T == 0) and t > 0:
                     apply_cash_transfer(state.wealth, targets, float(aid_cfg["budget_total"]))
-        step_exchange(G, state, cfg, rng)
+        for _ in range(n_exchanges):
+            step_exchange(G, state, cfg, rng)
         if (t % record_every) == 0:
             wealth_history.append(state.wealth.copy())
 
     return {
         "wealth_history": np.stack(wealth_history, axis=0),  # (T, n)
         "final_wealth": state.wealth.copy(),
+        "wealth_pre_aid": wealth_pre_aid,
         "n": n,
         "seed": seed,
     }

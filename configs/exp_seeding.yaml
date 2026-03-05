@@ -5,10 +5,11 @@ experiment:
 
 sim:
   n_agents: 200
-  n_steps: 5000
+  n_steps: 500
   n_runs: 50
   seed: 123
-  record_every: 10
+  record_every: 1
+  n_exchanges_per_step: 50
 
 economy:
   init_wealth:
@@ -20,7 +21,7 @@ economy:
 
 exchange:
   step:
-    transfer_amount: 0.10
+    transfer_amount: 0.05
     direction: "random"
   floor: 0.0
 
@@ -37,6 +38,7 @@ aid:
 
 seeding_experiment:
   strategies:
+    - "none"
     - "random"
     - "poorest_first"
     - "degree"

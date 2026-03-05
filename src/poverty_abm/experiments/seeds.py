@@ -14,7 +14,7 @@ def select_targets(
     n = G.number_of_nodes()
     nodes = np.array(list(G.nodes()))
 
-    if k <= 0:
+    if k <= 0 or strategy == "none":
         return []
     k = min(k, n)
 

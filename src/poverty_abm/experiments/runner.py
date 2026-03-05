@@ -109,7 +109,6 @@ def run_seeding_experiment(cfg: Dict[str, Any]) -> None:
     base_seed = int(cfg["sim"]["seed"])
     survival = float(cfg["economy"]["survival_threshold"])
 
-    # fixed network for this experiment (per run we can keep same or regenerate per seed)
     net_cfg = cfg["network"]
     graph_type = net_cfg["graph_type"]
     graph_params = net_cfg["params"]
@@ -120,30 +119,29 @@ def run_seeding_experiment(cfg: Dict[str, Any]) -> None:
     all_rows = []
     ts_rows = []
 
-    for strat_idx, strategy in enumerate(strategies):
-        for run_id in range(n_runs):
-            seed = base_seed + 10_000 * strat_idx + run_id
+    from poverty_abm.model.abm import init_wealth
 
-            G = make_graph(graph_type=graph_type, n=n_agents, seed=seed, params=graph_params)
+    for run_id in range(n_runs):
+        # Same graph and initial wealth for ALL strategies within a run
+        run_seed = base_seed + run_id
+        G = make_graph(graph_type=graph_type, n=n_agents, seed=run_seed, params=graph_params)
+        rng_init = np.random.default_rng(run_seed)
+        w0 = init_wealth(G.number_of_nodes(), cfg, rng_init)
 
-            # initial wealth (need it to pick poorest_first)
-            # run_simulation initializes wealth internally, so we replicate init here:
-            # easiest: run a "dry" init by calling run_simulation with 0 steps? (but we want clean)
-            # We'll re-use the sim init logic by importing init_wealth
-            from poverty_abm.model.abm import init_wealth
-            rng = np.random.default_rng(seed)
-            w0 = init_wealth(G.number_of_nodes(), cfg, rng)
-
-            targets = select_targets(G, w0, k=k, strategy=strategy, seed=seed)
+        for strat_idx, strategy in enumerate(strategies):
+            targets = select_targets(G, w0, k=k, strategy=strategy, seed=run_seed)
 
             # pass targets into cfg for this run (copy to avoid cross-run mutation)
             cfg_run = dict(cfg)
             cfg_run["_targets"] = targets
 
-            run = run_simulation(G, cfg_run, seed=seed)
+            # Use a strategy-dependent sim seed so RNG paths differ across strategies
+            sim_seed = base_seed + 10_000 * strat_idx + run_id
+            run = run_simulation(G, cfg_run, seed=sim_seed)
             metrics = compute_all(run, cfg_run)
 
-            spill = compute_spillovers(G, run["wealth_history"][0], run["wealth_history"][-1], targets, survival)
+            # Use pre-intervention wealth for spillover analysis
+            spill = compute_spillovers(G, run["wealth_pre_aid"], run["wealth_history"][-1], targets, survival)
 
             all_rows.append({
                 "experiment": exp_name,
